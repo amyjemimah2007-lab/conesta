@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>AI Habit Coach</title>
+
+<style>
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Arial,Helvetica,sans-serif;
+}
+
+body{
+background:#f4f7fb;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
+padding:20px;
+}
+
+.container{
+background:white;
+width:100%;
+max-width:650px;
+padding:30px;
+border-radius:15px;
+box-shadow:0 10px 25px rgba(0,0,0,.1);
+}
+
+h1{
+text-align:center;
+margin-bottom:10px;
+color:#222;
+}
+
+p{
+text-align:center;
+color:#666;
+margin-bottom:25px;
+}
+
+label{
+font-weight:bold;
+display:block;
+margin-bottom:10px;
+}
+
+input{
+width:100%;
+padding:14px;
+font-size:16px;
+border:1px solid #ccc;
+border-radius:8px;
+margin-bottom:20px;
+}
+
+button{
+width:100%;
+padding:15px;
+font-size:17px;
+border:none;
+background:#2563eb;
+color:white;
+border-radius:8px;
+cursor:pointer;
+transition:.3s;
+}
+
+button:hover{
+background:#1d4ed8;
+}
+
+button:disabled{
+background:gray;
+cursor:not-allowed;
+}
+
+#loading{
+display:none;
+text-align:center;
+margin-top:20px;
+font-weight:bold;
+color:#2563eb;
+}
+
+#result{
+margin-top:25px;
+background:#eef4ff;
+padding:20px;
+border-radius:10px;
+white-space:pre-wrap;
+line-height:1.6;
+display:none;
+}
+
+footer{
+margin-top:25px;
+text-align:center;
+font-size:14px;
+color:#777;
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>🤖 AI Habit Coach</h1>
+
+<p>
+Build better habits with personalized AI guidance.
+</p>
+
+<label>
+Enter a habit you want to build
+</label>
+
+<input
+type="text"
+id="habit"
+placeholder="Example: Exercise for 30 minutes every day">
+
+<button id="askBtn">
+Get AI Advice
+</button>
+
+<div id="loading">
+Generating advice...
+</div>
+
+<div id="result"></div>
+
+<footer>
+Powered by OpenAI
+</footer>
+
+</div>
+
+<script>
+
+const button=document.getElementById("askBtn");
+const result=document.getElementById("result");
+const loading=document.getElementById("loading");
+
+button.addEventListener("click",askAI);
+
+async function askAI(){
+
+const habit=document.getElementById("habit").value.trim();
+
+if(habit===""){
+alert("Please enter a habit.");
+return;
+}
+
+loading.style.display="block";
+result.style.display="none";
+button.disabled=true;
+
+try{
+
+const response=await fetch("/api/script",{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json"
+},
+
+body:JSON.stringify({
+habit
+})
+
+});
+
+const data=await response.json();
+
+loading.style.display="none";
+button.disabled=false;
+
+if(data.success){
+
+result.style.display="block";
+result.innerHTML=data.reply;
+
+}else{
+
+result.style.display="block";
+result.innerHTML="❌ "+data.error;
+
+}
+
+}catch(error){
+
+loading.style.display="none";
+button.disabled=false;
+
+result.style.display="block";
+result.innerHTML="Something went wrong. Please try again.";
+
+}
+
+}
+
+</script>
+
+</body>
+</html>
