@@ -1,8 +1,8 @@
 import OpenAI from "openai";
 
-// Initialize the OpenAI client using the API key from the environment
+// Initialize the OpenAI client using the API key from the environment (fallback to mock-key to prevent startup errors)
 const client = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY || "mock-key",
 });
 
 export default async function handler(req, res) {
@@ -26,32 +26,35 @@ export default async function handler(req, res) {
       });
     }
 
+    // Return a mock response for local testing/preview if no key is configured
+    if (!process.env.OPENAI_API_KEY) {
+      const mockReply = JSON.stringify({
+        motivation: `Deciding to build the habit of "${habit}" is a great first step! Remind yourself of your long-term goals and stay consistent.`,
+        tip: "Set a daily alarm or anchor the new habit right after an existing routine (like brushing your teeth).",
+        challenge: "Write down your exact plan for this habit on a piece of paper today."
+      });
+      return res.status(200).json({
+        success: true,
+        reply: mockReply
+      });
+    }
+
     // Send request to OpenAI
     const response = await client.chat.completions.create({
       model: "gpt-4o-mini",
+      response_format: { type: "json_object" },
       messages: [
         {
           role: "system",
-          content: "You are an expert AI Habit Coach."
+          content: "You are an expert AI Habit Coach. You must respond ONLY with a JSON object."
         },
         {
           role: "user",
-          content: `The user wants to build the following habit:
-
-"${habit}"
-
-Give the response in this format:
-
-🌟 Motivation:
-(2-3 encouraging sentences)
-
-💡 Tip:
-(One practical tip)
-
-🎯 Today's Challenge:
-(One simple action they should complete today)
-
-Keep the total response under 150 words.`
+          content: `The user wants to build the following habit: "${habit}". 
+Provide personalized guidance in a JSON object with these exact keys:
+- "motivation": 2-3 encouraging and motivational sentences.
+- "tip": One practical, highly actionable tip to make this habit stick.
+- "challenge": One simple, specific action they can complete TODAY to build momentum.`
         }
       ]
     });
