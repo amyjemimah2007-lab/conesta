@@ -75,7 +75,7 @@ label {
 
 input {
   width: 100%;
-  padding: 16px;
+  padding: 16px 80px 16px 16px;
   font-size: 1rem;
   background: rgba(15, 23, 42, 0.6);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -284,6 +284,16 @@ footer a {
   color: #6366f1;
   text-decoration: none;
 }
+
+.char-count {
+  position: absolute;
+  right: 15px;
+  bottom: 18px;
+  font-size: 0.8rem;
+  color: #64748b;
+  pointer-events: none;
+  transition: color 0.2s ease;
+}
 </style>
 
 </head>
@@ -300,7 +310,9 @@ footer a {
     <input
       type="text"
       id="habit"
+      maxlength="100"
       placeholder="Example: Exercise for 30 minutes every day">
+    <div id="charCount" class="char-count">0 / 100</div>
   </div>
 
   <button id="askBtn" class="ask-btn">
@@ -324,11 +336,23 @@ footer a {
 const button = document.getElementById("askBtn");
 const result = document.getElementById("result");
 const loading = document.getElementById("loading");
+const habitInput = document.getElementById("habit");
+const charCount = document.getElementById("charCount");
+
+habitInput.addEventListener("input", () => {
+  const currentLength = habitInput.value.length;
+  charCount.textContent = `${currentLength} / 100`;
+  if (currentLength >= 90) {
+    charCount.style.color = "#ef4444";
+  } else {
+    charCount.style.color = "#64748b";
+  }
+});
 
 button.addEventListener("click", askAI);
 
 async function askAI() {
-  const habit = document.getElementById("habit").value.trim();
+  const habit = habitInput.value.trim();
 
   if (habit === "") {
     alert("Please enter a habit.");
@@ -352,19 +376,33 @@ async function askAI() {
     loading.style.display = "none";
     button.disabled = false;
 
-    if (data.success) {
-      let advice;
-      try {
-        advice = JSON.parse(data.reply);
-      } catch (err) {
-        // Fallback parser if reply format differs
-        advice = {
-          motivation: "Stay dedicated to your goal and remember why you started.",
-          tip: "Focus on making the first step as small as possible.",
-          challenge: "Execute the smallest chunk of this habit today!"
-        };
-      }
+    if (response.status === 400 || !data.success) {
+      result.style.display = "block";
+      result.innerHTML = `<div class="error-msg">❌ ${data.error || "Bad request."}</div>`;
+      return;
+    }
 
+    let advice;
+    try {
+      advice = JSON.parse(data.reply);
+    } catch (err) {
+      advice = {
+        isHabit: true,
+        motivation: "Stay dedicated to your goal and remember why you started.",
+        tip: "Focus on making the first step as small as possible.",
+        challenge: "Execute the smallest chunk of this habit today!"
+      };
+    }
+
+    if (advice.isHabit === false) {
+      result.style.display = "block";
+      result.innerHTML = `
+        <div class="error-msg">
+          <span style="font-size: 1.5rem; display: block; margin-bottom: 8px;">🛡️ AI Coach Guardrail</span>
+          ${advice.error || "This input doesn't seem to be a valid habit. Please try something else."}
+        </div>
+      `;
+    } else {
       result.style.display = "grid";
       result.innerHTML = `
         <div class="card motivation-card">
@@ -394,9 +432,6 @@ async function askAI() {
           </button>
         </div>
       `;
-    } else {
-      result.style.display = "block";
-      result.innerHTML = `<div class="error-msg">❌ ${data.error}</div>`;
     }
   } catch (error) {
     loading.style.display = "none";
